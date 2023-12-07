@@ -1,18 +1,24 @@
 <script setup lang="ts">
+import Button from 'primevue/Button'
+import Dropdown from 'primevue/dropdown'
+import Fieldset from 'primevue/fieldset'
+import Textarea from 'primevue/textarea'
+import { computed, ref } from 'vue'
 
-import Button from 'primevue/Button';
-import Dropdown from 'primevue/dropdown';
-import Fieldset from 'primevue/fieldset';
-import Textarea from 'primevue/textarea';
-import { computed, ref } from 'vue';
-
-enum ProcessingMode { TE = 'te', CL = 'cl' }
+enum ProcessingMode {
+  TE = 'te',
+  CL = 'cl',
+}
 
 const server1Mode = ref<ProcessingMode>(ProcessingMode.TE)
 const server2Mode = ref<ProcessingMode>(ProcessingMode.CL)
 const input = ref<string>('')
+const sizeCalcInput = ref<string>('')
 const colors = ['lightpink', 'lightgreen', 'lightblue', 'lightyellow', 'lightorange', 'lightpurple', 'lightbrown', 'lightgray']
 const fontColors = ['black', 'black', 'black', 'black', 'black', 'black', 'black', 'black']
+
+const decLength = computed(() => sizeCalcInput.value.replace(/\n/g, '\r\n').length)
+const hexLength = computed(() => sizeCalcInput.value.replace(/\n/g, '\r\n').length.toString(16))
 
 const clteTemplate = `GET / HTTP/1.1
 Transfer-Encoding: chunked
@@ -61,7 +67,10 @@ function setClteTemplate() {
   server2Mode.value = ProcessingMode.TE
 }
 
-enum State { Header, Body }
+enum State {
+  Header,
+  Body,
+}
 
 function process(x: string, mode: ProcessingMode): string[] {
   x = x.replace(/\n/g, '\r\n')
@@ -78,10 +87,10 @@ function process(x: string, mode: ProcessingMode): string[] {
         break
       }
       case State.Body: {
-        switch(mode) {
+        switch (mode) {
           case ProcessingMode.TE: {
-            if (buf.toLowerCase().indexOf("transfer-encoding: ") === -1) {
-              buf += "<em>Error: Transfer-Encoding header not found for TE mode</em>"
+            if (buf.toLowerCase().indexOf('transfer-encoding: ') === -1) {
+              buf += '<em>Error: Transfer-Encoding header not found for TE mode</em>'
               rv.push(buf)
               buf = ''
               state = State.Header
@@ -116,9 +125,9 @@ function process(x: string, mode: ProcessingMode): string[] {
           }
 
           case ProcessingMode.CL: {
-            const idx = buf.toLowerCase().indexOf("content-length: ")
+            const idx = buf.toLowerCase().indexOf('content-length: ')
             if (idx === -1) {
-              buf += "<em>Error: Content-Length header not found for CL mode</em>"
+              buf += '<em>Error: Content-Length header not found for CL mode</em>'
               rv.push(buf)
               buf = ''
               state = State.Header
@@ -152,8 +161,10 @@ function process(x: string, mode: ProcessingMode): string[] {
 
 function processThenFormat(input: string, mode: ProcessingMode): string {
   try {
-    return process(input, mode).map((part, i) => `<span style="background-color: ${colors[i % colors.length]}; color: ${fontColors[i % fontColors.length]}">${part}</span>`).join('')
-  } catch(e) {
+    return process(input, mode)
+      .map((part, i) => `<span style="background-color: ${colors[i % colors.length]}; color: ${fontColors[i % fontColors.length]}">${part}</span>`)
+      .join('')
+  } catch (e) {
     return `<span style="background-color: red; color: white; font-weight: bold">${e}</span>`
   }
 }
@@ -170,28 +181,35 @@ setTeclTemplate()
 
 <template>
   <h1>SmugPal: HTTP Smuggling Visualizer / Simulator</h1>
-    <div class="flex">
-      <Fieldset legend="Settings" style="flex: 1 0 auto">
+  <div class="flex">
+    <Fieldset legend="Settings" style="flex: 1 0 auto">
       <div class="flex">
-      <div>
-      <div>Server 1 Mode</div>
-      <Dropdown v-model="server1Mode" :options="modeOptions" option-label="name" option-value="value"></Dropdown>
-      </div>
+        <div>
+          <div>Server 1 Mode</div>
+          <Dropdown v-model="server1Mode" :options="modeOptions" option-label="name" option-value="value"></Dropdown>
+        </div>
 
-      <div>
-      <div>Server 2 Mode</div>
-      <Dropdown v-model="server2Mode" :options="modeOptions" option-label="name" option-value="value"></Dropdown>
+        <div>
+          <div>Server 2 Mode</div>
+          <Dropdown v-model="server2Mode" :options="modeOptions" option-label="name" option-value="value"></Dropdown>
+        </div>
       </div>
-      </div>
-      </Fieldset>
+    </Fieldset>
 
-      <Fieldset legend="Templates" style="flex: 1 0 auto">
+    <Fieldset legend="Templates" style="flex: 1 0 auto">
       <Button link label="TE-CL" @click="setTeclTemplate()"></Button>
       <Button link label="CL-TE" @click="setClteTemplate()"></Button>
-      </Fieldset>
-    </div><br />
+    </Fieldset>
 
-    <Fieldset legend="Playground" class="playground">
+    <Fieldset legend="Size Calculator" style="flex: 1 0 auto">
+      <textarea style="width: 100%" v-model="sizeCalcInput"></textarea><br />
+      Dec: {{ decLength }} &nbsp;&nbsp;&nbsp; Hex: {{ hexLength }}<br />
+      <small>(newlines are converted to CRLF (2 bytes) for counting)</small>
+    </Fieldset>
+  </div>
+  <br />
+
+  <Fieldset legend="Playground" class="playground">
     <div class="flex">
       <h3 style="flex: 1 0 auto">Input</h3>
       <h3 style="flex: 1 0 auto">Server 1 Sees</h3>
@@ -200,13 +218,13 @@ setTeclTemplate()
 
     <div class="flex">
       <div style="flex: 0 0 auto; flex-direction: column" class="flex">
-      <Textarea v-model="input" autofocus style="flex: 1 1 auto"></Textarea>
-      <br />
-      <small style="font-family: sans-serif">Note: newlines are automatically converted to CRLF during processing</small>
-    </div>
+        <Textarea v-model="input" autofocus style="flex: 1 1 auto"></Textarea>
+        <br />
+        <small style="font-family: sans-serif">(newlines are automatically converted to CRLF during processing)</small>
+      </div>
 
-    <pre style="flex: 1 0 auto" v-html="server1Result"></pre>
-    <pre style="flex: 1 0 auto" v-html="server2Result"></pre>
+      <pre style="flex: 1 0 auto" v-html="server1Result"></pre>
+      <pre style="flex: 1 0 auto" v-html="server2Result"></pre>
     </div>
   </Fieldset>
 </template>
@@ -217,7 +235,8 @@ setTeclTemplate()
   gap: 1em;
 }
 
-.playground textarea, .playground pre {
+.playground textarea,
+.playground pre {
   font-family: monospace;
 }
 </style>
