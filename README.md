@@ -1,7 +1,7 @@
 # SmugPal
 
-[HTTP Smuggling](https://portswigger.net/web-security/request-smuggling) simulator and visualizer.
+[HTTP Smuggling](https://portswigger.net/web-security/request-smuggling) simulator / visualizer and command line generator.
 
-Develop exploit interactively and visually
+Workbench for developing HTTP Smuggling / Desync exploits interactively and visually.
 
 ![](docs/screenshot.png)

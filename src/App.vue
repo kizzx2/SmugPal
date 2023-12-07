@@ -21,8 +21,14 @@ const colors = ['lightpink', 'lightgreen', 'lightblue', 'lightyellow', 'lightora
 const fontColors = ['black', 'black', 'black', 'black', 'black', 'black', 'black', 'black']
 const cmdHostname = ref<string>('example.com')
 const cmdPort = ref<string>('80')
-const cmdNc = computed(() => `printf '${input.value.replace(/'/g, `'"'"'`).replace(/\n/g, '\\r\\n')}' | nc ${cmdHostname.value} ${cmdPort.value}`)
-const cmdSocat = computed(() => `printf '${input.value.replace(/'/g, `'"'"'`).replace(/\n/g, '\\r\\n')}' | socat - OPENSSL:${cmdHostname.value}:${cmdPort.value},verify=0`)
+const cmdNc = computed(() => process(input.value, server1Mode.value).map((part) => {
+  part = part.replace(/'/g, `'"'"'`).replace(/\n/g, '\\r\\n')
+  return `printf '${part}' | nc ${cmdHostname.value} ${cmdPort.value}`
+}))
+const cmdSocat = computed(() => process(input.value, server1Mode.value).map((part) => {
+  part = part.replace(/'/g, `'"'"'`).replace(/\n/g, '\\r\\n')
+  return `printf '${part}' | socat - OPENSSL:${cmdHostname.value}:${cmdPort.value},verify=0`
+}))
 
 const decLength = computed(() => sizeCalcInput.value.replace(/\n/g, '\r\n').length)
 const hexLength = computed(() => sizeCalcInput.value.replace(/\n/g, '\r\n').length.toString(16))
@@ -239,7 +245,7 @@ setTeclTemplate()
 </script>
 
 <template>
-  <h1>SmugPal: HTTP Smuggling Visualizer / Simulator</h1>
+  <h1>SmugPal: HTTP Smuggling Visualizer / Simulator / Command Line Generator</h1>
   <div class="flex">
     <Fieldset legend="Settings" style="flex: 1 0 auto">
       <div class="flex">
@@ -268,7 +274,7 @@ setTeclTemplate()
   </div>
   <br />
 
-  <Fieldset legend="Playground" class="playground">
+  <Fieldset legend="Simulator" class="simulator">
     <div class="flex">
       <h3 style="flex: 1 0 auto">Input</h3>
       <h3 style="flex: 1 0 auto">Server 1 Sees</h3>
@@ -301,9 +307,9 @@ setTeclTemplate()
       </div>
     </div>
     <small style="font-family: sans-serif;">nc (HTTP)</small>
-    <pre style="background-color: #eee; padding: 0.5rem; max-width: 100%; white-space: normal; overflow-wrap: break-word;">{{ cmdNc }}</pre>
+    <pre style="background-color: #eee; padding: 0.5rem; max-width: 100%; white-space: normal; overflow-wrap: break-word;" v-for="(cmd, i) in cmdNc" :key="i">{{ cmd }}</pre>
     <small style="font-family: sans-serif;">socat (HTTPS)</small>
-    <pre style="background-color: #eee; padding: 0.5rem; max-width: 100%; white-space: normal; overflow-wrap: break-word;">{{ cmdSocat }}</pre>
+    <pre style="background-color: #eee; padding: 0.5rem; max-width: 100%; white-space: normal; overflow-wrap: break-word;" v-for="(cmd, i) in cmdSocat" :key="i">{{ cmd }}</pre>
   </Fieldset>
 </template>
 
@@ -313,8 +319,8 @@ setTeclTemplate()
   gap: 1em;
 }
 
-.playground textarea,
-.playground pre {
+.simulator textarea,
+.simulator pre {
   font-family: monospace;
 }
 </style>
