@@ -2,6 +2,7 @@
 import Button from 'primevue/Button'
 import Dropdown from 'primevue/dropdown'
 import Fieldset from 'primevue/fieldset'
+import InputText from 'primevue/inputtext'
 import Textarea from 'primevue/textarea'
 import { computed, ref } from 'vue'
 
@@ -16,6 +17,9 @@ const input = ref<string>('')
 const sizeCalcInput = ref<string>('')
 const colors = ['lightpink', 'lightgreen', 'lightblue', 'lightyellow', 'lightorange', 'lightpurple', 'lightbrown', 'lightgray']
 const fontColors = ['black', 'black', 'black', 'black', 'black', 'black', 'black', 'black']
+const cmdHostname = ref<string>('example.com')
+const cmdPort = ref<string>('80')
+const commandLine = computed(() => `echo -n '${input.value.replace(/'/g, `'"'"'`).replace(/\n/g, '\\r\\n')}' | nc ${cmdHostname.value} ${cmdPort.value}`)
 
 const decLength = computed(() => sizeCalcInput.value.replace(/\n/g, '\r\n').length)
 const hexLength = computed(() => sizeCalcInput.value.replace(/\n/g, '\r\n').length.toString(16))
@@ -226,6 +230,23 @@ setTeclTemplate()
       <pre style="flex: 1 0 auto" v-html="server1Result"></pre>
       <pre style="flex: 1 0 auto" v-html="server2Result"></pre>
     </div>
+  </Fieldset>
+
+  <br />
+
+  <Fieldset legend="Command Line">
+    <div style="display: flex; gap: 1em">
+      <div>
+        <label>Hostname</label>&nbsp;
+        <InputText placeholder="Hostname" v-model="cmdHostname" />&nbsp;
+      </div>
+      <div>
+        <label>Port</label>&nbsp;
+        <InputText placeholder="Port" v-model="cmdPort" />
+      </div>
+    </div>
+    <pre style="background-color: #eee; padding: 0.5rem; max-width: 100%; white-space: normal; overflow-wrap: break-word;">{{ commandLine }}</pre>
+    <small style="font-family: sans-serif">Tip: use <code>socat</code> for SSL</small>
   </Fieldset>
 </template>
 
