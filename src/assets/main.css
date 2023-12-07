@@ -1,0 +1,6 @@
+.p-fieldset,
+.p-fieldset-legend,
+.p-dropdown,
+.p-inputtext {
+    background-color: inherit;
+}
