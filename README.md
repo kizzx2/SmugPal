@@ -18,4 +18,5 @@ Workbench for developing HTTP Smuggling / Desync exploits interactively and visu
 - [ ] Simulate [TE Obfuscation](https://sc.scomurr.com/http-request-smuggling-obfuscated-te-header/) by having an option that error out on unrecognized encoding
 - [ ] CL.0 smuggling template
 - [ ] Simulate HTTP/2 (in this mode, the whole request is always read to the end, and the idea is to convert `\r\n` into newlines for backend server to simulate CRLF injection)
+- [ ] Generate command line for HTTP/2 payload using `curl`
 - [ ] Simulate `CONNECT` -> `Upgrade: WebSocket` (slide 36 in [this deck](https://www.slideshare.net/neexemil/http-request-smuggling-via-higher-http-versions))
