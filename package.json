@@ -1,5 +1,5 @@
 {
-  "name": "-http-smuggling-pal",
+  "name": "http-smuggling-pal",
   "version": "0.0.0",
   "license": "MIT",
   "type": "module",
