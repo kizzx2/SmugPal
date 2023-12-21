@@ -25,6 +25,6 @@ Workbench for developing HTTP Smuggling / Desync exploits interactively and visu
 
 ## Note about HTTP/2 without HTTPS
 
-The current payload template assumes HTTPS when used with HTTP/2. This is because as of writing, apparently [mitmproxy does not support h2c](https://github.com/mitmproxy/mitmproxy/issues/3362). When I tried with Burp I got similar results so I assume it is also the same case.
+The current payload template assumes HTTPS when used with HTTP/2. This is because as of writing, apparently [mitmproxy does not support prior-knowledge H2 connections](https://github.com/mitmproxy/mitmproxy/issues/3362). When I tried with Burp I got similar results so I assume it is also the same case.
 
 If you want to use it without HTTPS, simply comment out the line that says `ctx.wrap_socket` in the script.
