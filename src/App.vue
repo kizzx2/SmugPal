@@ -80,7 +80,7 @@ const hintText = computed(() => {
   if (server1Mode.value === ProcessingMode.H2) {
     return '(H2 input is specified as a JSON object and will downgrade to H1 for downstream)'
   } else {
-    return '(newlines are converted to CRLF (2 bytes) for counting)'
+    return '(newlines from this textbox converted to CRLF for the payloads)'
   }
 })
 
@@ -351,7 +351,7 @@ setTeclTemplate()
     <Fieldset legend="Size Calculator" style="flex: 1 0 auto">
       <textarea style="width: 100%" v-model="sizeCalcInput"></textarea><br />
       Dec: {{ decLength }} &nbsp;&nbsp;&nbsp; Hex: {{ hexLength }}<br />
-      <small>(newlines are automatically converted to CRLF during processing)</small>
+      <small>(newlines in this box are automatically converted to CRLF (2 bytes) for counting)</small>
     </Fieldset>
   </div>
   <br />
