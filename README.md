@@ -4,6 +4,8 @@
 
 Workbench for developing HTTP Smuggling / Desync exploits interactively and visually.
 
+Inspired by [RegexPal](https://regexpal.com), [revshells.com](https://revshells.com)
+
 ![](docs/screenshot.png)
 
 ## Features
